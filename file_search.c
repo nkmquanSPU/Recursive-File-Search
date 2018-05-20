@@ -53,18 +53,42 @@ void recursive_search(const char *directory)
 	/*
 	The 'directory_entry_ptr' variable a pointer of type 'dirent' 
 		which is defined in the <dirent.h> header file.
+
+	struct dirent {
+		ino_t  d_ino       // file serial number
+		char   d_name[]    // name of entry
+	}
+
 	*/
-	 struct dirent* directory_entry_ptr;
+	struct dirent* directory_entry_ptr;
 
-	 // set the 'directory_ptr' poiter to point the directory provided by user
-	 directory_ptr = opendir(directory); // open the directory
+	// set the 'directory_ptr' poiter to point the directory provided by user
+	directory_ptr = opendir(directory); // open the directory
 
-	 // if the directory cannot be opened
-	 if(directory_ptr == NULL)
-	 {
-	 	printf("Cannot open %s\n", directory); // print error message
-	 	exit(1); // exit the recursive_search() function
-	 }
-	
-	 closedir(directory_ptr); // close the directory
+	// if the directory cannot be opened
+	if(directory_ptr == NULL)
+	{
+		printf("Cannot open %s\n", directory); // print error message
+		exit(1); // exit the recursive_search() function
+	}
+	else
+	{	
+		do // while the directory_ptr is not pointing to NULL 
+		{
+			/*
+			The readdir(directory_ptr) function reads the next directory entry 
+				from the directory specified by directory_ptr, 
+				and returns its address to the directory_entry_ptr.
+			*/
+			directory_entry_ptr = readdir(directory_ptr);
+
+			//if(directory_ptr == NULL ) 
+				//break;
+
+			printf( "%s\n", directory_entry_ptr->d_name );
+		} while(directory_ptr != NULL); 
+	}
+
+
+	closedir(directory_ptr); // close the directory
 }
