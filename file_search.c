@@ -22,5 +22,11 @@ int main(int argc, char *argv[])
 	strcpy(search_term, argv[1]); // get the search term from user
 	strcpy(start_dir, argv[2]); // get the starting directory from user
 
+	// if the provided starting directory starts with a '/', or ends with a '/'
+	if((start_dir[0] != '/') || (start_dir[strlen(start_dir) - 1] == '/'))
+	{
+		printf("The <starting directory> must start with a \'/\', and does not end with an \'/\'\n");
+		exit(1); 
+	}
 	return 0;
 }
