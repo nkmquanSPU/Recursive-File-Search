@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 	clock_t start;
 	clock_t end;
     double run_time;
+    double temp;
 
 	char search_term[256]; // search term
 	char start_dir[256]; // starting directory
@@ -38,13 +39,13 @@ int main(int argc, char *argv[])
 		exit(1); 
 	}
 
-	//start = clock(); // record the start time of recursive_search()
+	start = clock(); // record the start time of recursive_search()
 	recursive_search(start_dir);
-	//end = clock(); // record the end time of recursive_search()
+	end = clock(); // record the end time of recursive_search()
 	
-	// calculate the run-time of recursive_search()
-	//run_time = ((end - start) * 1000) / CLOCKS_PER_SEC; 
-	//printf("Time: %f ms\n", run_time);
+	// calculate the run-time of recursive_search() in milliseconds
+	run_time = 1000.0 * (end - start) / CLOCKS_PER_SEC;
+	printf("Time: %f ms\n", run_time);
 
 	return 0;
 }
