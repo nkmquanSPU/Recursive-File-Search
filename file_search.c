@@ -8,9 +8,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <dirent.h>
+#include <time.h>
 
-
-void recursive_search(const char *directory);
+char* recursive_search(const char *directory);
 
 int main(int argc, char *argv[])
 {
@@ -20,6 +20,11 @@ int main(int argc, char *argv[])
 		printf("Usage: ./file_search <search term> <starting directory>\n"); // display program's usage
 		exit(1);
 	}	
+
+	clock_t start;
+	clock_t end;
+    double run_time;
+
 	char search_term[256]; // search term
 	char start_dir[256]; // starting directory
 
@@ -33,8 +38,13 @@ int main(int argc, char *argv[])
 		exit(1); 
 	}
 
+	start = clock(); // record the start time of recursive_search()
 	recursive_search(start_dir);
+	end = clock(); // record the end time of recursive_search()
 	
+	// calculate the run-time of recursive_search()
+	run_time = ((double) ((end - start)*1000)) / CLOCKS_PER_SEC; 
+	printf("Time: %f\n", run_time);
 	return 0;
 }
 
@@ -42,7 +52,7 @@ int main(int argc, char *argv[])
 This function:
 
 */
-void recursive_search(const char *directory)
+char* recursive_search(const char *directory)
 {
 	/*
 	The 'dir_ptr' variable a pointer of type 'DIR'.
@@ -69,6 +79,9 @@ void recursive_search(const char *directory)
 	*/
 	struct dirent* dirent_ptr = (struct dirent *) malloc(sizeof(struct dirent)); ;
 
+	char current[] = ".";
+	char parent[] = "..";
+
 	// set the 'dir_ptr' pointer to point the directory provided by user
 	dir_ptr = opendir(directory); // open the directory
 
@@ -83,23 +96,25 @@ void recursive_search(const char *directory)
 	{
 		/*
 		The readdir() returns either:
-			file/directory at current position in directory stream. 
+			file/directory at current position in directory stream, or 
 			NULL pointer if reached at the end of directory stream.
 		*/
 		dirent_ptr = readdir(dir_ptr);
 
-		//if(dir_ptr == NULL ) 
-			//break;
+		// if d_type is a directory
 		if(dirent_ptr->d_type == DT_DIR)	
-			printf( "%s:\n", dirent_ptr->d_name );
-		else
-			printf( "%s\n", dirent_ptr->d_name );
-
+		{	// if d_type is neither . nor ..
+			if((strcmp(dirent_ptr->d_name, current) != 0) && (strcmp(dirent_ptr->d_name, parent) != 0))
+				printf("%s/%s:\n", directory, dirent_ptr->d_name); // print out its name and append a ":" to the end	
+		}				
+		else if(dirent_ptr->d_type == DT_REG) // if d_type is a regular file 
+			printf("%s/%s\n", directory, dirent_ptr->d_name); // print out its name only		
+		
 	} while(dir_ptr != NULL); // while the dir_ptr is not NULL 
-	
-
+		
 	closedir(dir_ptr); // close the directory
 
+	// free all allocated memory
 	free(dirent_ptr);
-	free(dir_ptr);
+	free(dir_ptr);	
 }
