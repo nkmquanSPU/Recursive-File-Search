@@ -1,7 +1,7 @@
 # Recursive File Search
 
 ### Usage: 
-`./file_search <search term> <starting directory>`
+```./file_search <search term> <starting directory>```
 Note: parameters in [] are optional, parameters in <> are required. The | (pipe) means "or".
 
 ### Set up 
