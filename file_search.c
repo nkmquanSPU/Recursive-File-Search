@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <dirent.h>
 #include <time.h>
+#include <sys/time.h>
 
 char* recursive_search(char *directory);
 
@@ -20,11 +21,6 @@ int main(int argc, char *argv[])
 		printf("Usage: ./file_search <search term> <starting directory>\n"); // display program's usage
 		exit(1);
 	}	
-
-	clock_t start;
-	clock_t end;
-    double run_time;
-    double temp;
 
 	char search_term[256]; // search term
 	char start_dir[256]; // starting directory
@@ -39,13 +35,18 @@ int main(int argc, char *argv[])
 		exit(1); 
 	}
 
-	start = clock(); // record the start time of recursive_search()
+	struct timeval  start; 
+	struct timeval end;
+	double run_time;
+
+	gettimeofday(&start, NULL); // record the start time of recursive_search()
 	recursive_search(start_dir);
-	end = clock(); // record the end time of recursive_search()
-	
+	gettimeofday(&end, NULL); // record the end time of recursive_search()
+
 	// calculate the run-time of recursive_search() in milliseconds
-	run_time = 1000.0 * (end - start) / CLOCKS_PER_SEC;
-	printf("Time: %f ms\n", run_time);
+	run_time = 1000.0 * ((double) (end.tv_usec - start.tv_usec) / 1000000 + (double) (end.tv_sec - start.tv_sec));
+	printf("\n");
+	printf ("Time = %f ms\n", run_time);
 
 	return 0;
 }
@@ -53,6 +54,8 @@ int main(int argc, char *argv[])
 /*
 This function:
 
+Parameter:
+Return:
 */
 char* recursive_search(char *directory)
 {
@@ -132,5 +135,5 @@ char* recursive_search(char *directory)
 	//free(new_dir); // free allocated memory for 'new_dir'
 	closedir(dir_ptr); // close the directory	
 	//free(dirent_ptr); // free allocated memory for 'dirent_ptr'
-	//free(dir_ptr); // free allocated memory for 'dir_ptr' 	
+	//free(dir_ptr); // free allocated memory for 'dir_ptr' 
 }
