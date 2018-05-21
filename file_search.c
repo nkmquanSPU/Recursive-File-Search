@@ -38,13 +38,14 @@ int main(int argc, char *argv[])
 		exit(1); 
 	}
 
-	start = clock(); // record the start time of recursive_search()
+	//start = clock(); // record the start time of recursive_search()
 	recursive_search(start_dir);
-	end = clock(); // record the end time of recursive_search()
+	//end = clock(); // record the end time of recursive_search()
 	
 	// calculate the run-time of recursive_search()
-	run_time = ((double) ((end - start)*1000)) / CLOCKS_PER_SEC; 
-	printf("Time: %f\n", run_time);
+	//run_time = ((end - start) * 1000) / CLOCKS_PER_SEC; 
+	//printf("Time: %f ms\n", run_time);
+
 	return 0;
 }
 
@@ -54,6 +55,9 @@ This function:
 */
 char* recursive_search(const char *directory)
 {
+	// 'new_dir' contains the name of new directory during the recursive search
+	char new_dir[1024];
+
 	/*
 	The 'dir_ptr' variable a pointer of type 'DIR'.
 	'DIR' is a data type representing a directory stream.
@@ -105,7 +109,16 @@ char* recursive_search(const char *directory)
 		if(dirent_ptr->d_type == DT_DIR)	
 		{	// if d_type is neither . nor ..
 			if((strcmp(dirent_ptr->d_name, current) != 0) && (strcmp(dirent_ptr->d_name, parent) != 0))
-				printf("%s/%s:\n", directory, dirent_ptr->d_name); // print out its name and append a ":" to the end	
+			{
+				// print out the directory name and append a ":" to the end
+				printf("%s/%s:\n", directory, dirent_ptr->d_name); 
+
+				// 'new_dir' is the name of new directory to perform recursive search
+				sprintf(new_dir,"%s/%s",directory, dirent_ptr->d_name); 
+
+				// search the next sub-directory
+				recursive_search(new_dir);
+			}								
 		}				
 		else if(dirent_ptr->d_type == DT_REG) // if d_type is a regular file 
 			printf("%s/%s\n", directory, dirent_ptr->d_name); // print out its name only		
