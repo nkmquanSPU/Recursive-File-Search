@@ -17,8 +17,8 @@ int main(int argc, char *argv[])
 {
 	// if user enters invalid commmand
 	if(argc != 3)
-	{
-		printf("Usage: ./file_search <search term> <starting directory>\n"); // display program's usage
+	{	// display program's usage
+		printf("Usage: ./file_search <search term> <starting directory>\n"); 
 		exit(1);
 	}	
 
@@ -44,7 +44,8 @@ int main(int argc, char *argv[])
 	gettimeofday(&end, NULL); // record the end time of recursive_search()
 
 	// calculate the run-time of recursive_search() in milliseconds
-	run_time = 1000.0 * ((double) (end.tv_usec - start.tv_usec) / 1000000 + (double) (end.tv_sec - start.tv_sec));
+	run_time = 1000.0 * ((double) (end.tv_usec - start.tv_usec) / 1000000 + 
+						 (double) (end.tv_sec - start.tv_sec));
 	printf("\n");
 	printf ("Time = %f ms\n", run_time);
 	
@@ -53,6 +54,9 @@ int main(int argc, char *argv[])
 
 /*
 This function:
+- Takes in the search term and starting directory from user.
+- Recursively searches all file and directory names in starting directory for occurrences of search term.
+- Prints the all file and directory names names contain the search term.
 
 Parameter: char search_term[], char *directory
 Return: None
@@ -128,7 +132,8 @@ void recursive_search(char search_term[], char *directory)
 			
 			// if the current entry is a directory
     		if(dirent_ptr->d_type == DT_DIR)	        	
-	        	recursive_search(search_term, new_dir); // recursively search in this directory the for the search term	        
+	        	recursive_search(search_term, new_dir); // recursively search in this
+														//  directory the for the search term	
 	    }
 	}  
 
