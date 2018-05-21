@@ -10,7 +10,7 @@
 #include <dirent.h>
 #include <time.h>
 
-char* recursive_search(const char *directory);
+char* recursive_search(char *directory);
 
 int main(int argc, char *argv[])
 {
@@ -53,10 +53,17 @@ int main(int argc, char *argv[])
 This function:
 
 */
-char* recursive_search(const char *directory)
+char* recursive_search(char *directory)
 {
 	// 'new_dir' contains the name of new directory during the recursive search
-	char new_dir[1024];
+	//char new_dir[1024];
+	char *new_dir = malloc(sizeof(char) * 1024);
+	/*
+	'dir_container' is an array of pointers.
+	Each pointers in 'dir_container' points to a directory's name
+	*/ 
+	char *dir_container[200];
+	int used_space = 0;
 
 	/*
 	The 'dir_ptr' variable a pointer of type 'DIR'.
@@ -95,39 +102,34 @@ char* recursive_search(const char *directory)
 		printf("Cannot open %s\n", directory); // print error message
 		exit(1); // exit the recursive_search() function
 	}
-	
-	do 
+
+	/*
+	The readdir() returns either:
+		file/directory at current position in directory stream, or 
+		NULL pointer if reached at the end of directory stream.
+	*/
+	while((dirent_ptr = readdir(dir_ptr)) != NULL)
 	{
-		/*
-		The readdir() returns either:
-			file/directory at current position in directory stream, or 
-			NULL pointer if reached at the end of directory stream.
-		*/
-		dirent_ptr = readdir(dir_ptr);
+	    if(strcmp(dirent_ptr->d_name, current) != 0 && strcmp(dirent_ptr->d_name, parent) != 0)
+	    {
+	    	// 'new_dir' is the name of new directory/file
+	        sprintf(new_dir, "%s/%s", directory, dirent_ptr->d_name);
+	       	
+	        // print out the directory name and append a ":" to the end
+	       	if(dirent_ptr->d_type == DT_DIR) 
+	       		printf("%s:\n", new_dir);
+	       	else // print out the file name
+	        	printf("%s\n", new_dir);	       
 
-		// if d_type is a directory
-		if(dirent_ptr->d_type == DT_DIR)	
-		{	// if d_type is neither . nor ..
-			if((strcmp(dirent_ptr->d_name, current) != 0) && (strcmp(dirent_ptr->d_name, parent) != 0))
-			{
-				// print out the directory name and append a ":" to the end
-				printf("%s/%s:\n", directory, dirent_ptr->d_name); 
+	        if(dirent_ptr->d_type == DT_DIR)
+	        {	
+	        	recursive_search(new_dir);
+	        }
+	    }
+	}  
 
-				// 'new_dir' is the name of new directory to perform recursive search
-				sprintf(new_dir,"%s/%s",directory, dirent_ptr->d_name); 
-
-				// search the next sub-directory
-				recursive_search(new_dir);
-			}								
-		}				
-		else if(dirent_ptr->d_type == DT_REG) // if d_type is a regular file 
-			printf("%s/%s\n", directory, dirent_ptr->d_name); // print out its name only		
-		
-	} while(dir_ptr != NULL); // while the dir_ptr is not NULL 
-		
-	closedir(dir_ptr); // close the directory
-
-	// free all allocated memory
-	free(dirent_ptr);
-	free(dir_ptr);	
+	//free(new_dir); // free allocated memory for 'new_dir'
+	closedir(dir_ptr); // close the directory	
+	//free(dirent_ptr); // free allocated memory for 'dirent_ptr'
+	//free(dir_ptr); // free allocated memory for 'dir_ptr' 	
 }
