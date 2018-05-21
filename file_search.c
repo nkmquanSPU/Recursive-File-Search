@@ -120,7 +120,7 @@ char* recursive_search(char search_term[], char *directory)
 	    	// 'new_dir' is the name of new directory/file
 	        sprintf(new_dir, "%s/%s", directory, dirent_ptr->d_name);	        
 
-	    	found = strstr(new_dir, search_term);
+	    	found = strstr(dirent_ptr->d_name, search_term);
 
 	    	if((found) && (dirent_ptr->d_type == DT_DIR))    	
 		        printf("%s:\n", new_dir);
