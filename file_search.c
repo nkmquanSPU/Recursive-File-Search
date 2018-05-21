@@ -11,7 +11,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-char* recursive_search(char *directory);
+char* recursive_search(char search_term[], char *directory);
 
 int main(int argc, char *argv[])
 {
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 	double run_time;
 
 	gettimeofday(&start, NULL); // record the start time of recursive_search()
-	recursive_search(start_dir);
+	recursive_search(search_term, start_dir);
 	gettimeofday(&end, NULL); // record the end time of recursive_search()
 
 	// calculate the run-time of recursive_search() in milliseconds
@@ -57,17 +57,18 @@ This function:
 Parameter:
 Return:
 */
-char* recursive_search(char *directory)
+char* recursive_search(char search_term[], char *directory)
 {
+	char* found;
+
 	// 'new_dir' contains the name of new directory during the recursive search
-	//char new_dir[1024];
 	char *new_dir = malloc(sizeof(char) * 1024);
+
 	/*
 	'dir_container' is an array of pointers.
 	Each pointers in 'dir_container' points to a directory's name
 	*/ 
 	char *dir_container[200];
-	int used_space = 0;
 
 	/*
 	The 'dir_ptr' variable a pointer of type 'DIR'.
@@ -117,17 +118,18 @@ char* recursive_search(char *directory)
 	    if(strcmp(dirent_ptr->d_name, current) != 0 && strcmp(dirent_ptr->d_name, parent) != 0)
 	    {
 	    	// 'new_dir' is the name of new directory/file
-	        sprintf(new_dir, "%s/%s", directory, dirent_ptr->d_name);
-	       	
-	        // print out the directory name and append a ":" to the end
-	       	if(dirent_ptr->d_type == DT_DIR) 
-	       		printf("%s:\n", new_dir);
-	       	else // print out the file name
-	        	printf("%s\n", new_dir);	       
+	        sprintf(new_dir, "%s/%s", directory, dirent_ptr->d_name);	        
 
-	        if(dirent_ptr->d_type == DT_DIR)
+	    	found = strstr(new_dir, search_term);
+
+	    	if((found) && (dirent_ptr->d_type == DT_DIR))    	
+		        printf("%s:\n", new_dir);
+		    else if (found)
+		    	printf("%s\n", new_dir);
+
+    		if(dirent_ptr->d_type == DT_DIR)
 	        {	
-	        	recursive_search(new_dir);
+	        	recursive_search(search_term, new_dir);
 	        }
 	    }
 	}  
