@@ -132,6 +132,10 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	struct timeval start; 
+	struct timeval end;
+	double run_time;
+
 	// create an array of threads
 	pthread_t my_threads[N]; // for now there is only 1 thread in my_threads
 
@@ -152,9 +156,17 @@ int main(int argc, char *argv[])
 	strcpy(p1_info->term, argv[1]); // get search term from user
 	p1_info->path = argv[2]; // get starting directory from user
 
+	gettimeofday(&start, NULL); // record the start time of recursive_search()
 	pthread_create(&my_threads[0], NULL, recursive_search, p1_info);
     pthread_join(my_threads[0], NULL);
+    gettimeofday(&end, NULL); // record the end time of recursive_search()
 
+    // calculate the run-time of recursive_search() in milliseconds
+	run_time = 1000.0 * ((double) (end.tv_usec - start.tv_usec) / 1000000 + 
+						 (double) (end.tv_sec - start.tv_sec));
+	printf("\n");
+	printf ("Time = %f ms\n", run_time);
+	
 	return 0;
 	/*-------------------------------------------------------------------------------------------*/
 	// char search_term[256]; // search term
