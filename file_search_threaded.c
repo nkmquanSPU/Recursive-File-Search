@@ -17,22 +17,30 @@
 
 struct path_info 
 {
-	char term[]; // search term
+	char term[1024]; // search term
 	char *path; // directory or file name
-}
+};
 
 /*
 This function:
 
 */
+
 void *recursive_search(void *arg)
 {
 	struct path_info *s = arg; // s is a pointer of path_info object 'arg'
 
-	char search_term[] = s->term; // search term
+	char search_term[1024];
+	strcpy(search_term, s->term); // search term
+
 	char *directory = s->path; // directory or file name
 
-	char* found;
+	//printf("%s\n", search_term);
+	//printf("%s\n", directory);
+	
+	// fflush(stdout);
+
+	char *found;
 
 	// 'new_dir' contains the name of new directory during the recursive search
 	char *new_dir = malloc(sizeof(char) * 1024);
@@ -62,7 +70,7 @@ void *recursive_search(void *arg)
 
 
 	*/
-	struct dirent* dirent_ptr = (struct dirent *) malloc(sizeof(struct dirent)); ;
+	struct dirent *dirent_ptr = (struct dirent *) malloc(sizeof(struct dirent)); ;
 
 	
 	char current[] = ".";
@@ -91,7 +99,7 @@ void *recursive_search(void *arg)
 	        sprintf(new_dir, "%s/%s", directory, dirent_ptr->d_name);	        
 
 			// find the search term in the name of the directory/file
-	    	found = strstr(dirent_ptr->d_name, search_term);
+	    	found = strstr(dirent_ptr->d_name, search_term);	
 
 			// if the search term is found in the name of the directory
 	    	if((found) && (dirent_ptr->d_type == DT_DIR))    	
@@ -99,10 +107,14 @@ void *recursive_search(void *arg)
 		    else if (found) // if the search term is found in the name of the file
 		    	printf("%s\n", new_dir); // print out the file name
 			
+			//update path_info with 'search_term' and 'new_dir'
+		    s->path = new_dir;
+		    strcpy(s->term, search_term); // search term
+
 			// if the current entry is a directory
-    		if(dirent_ptr->d_type == DT_DIR)	        	
-	        	recursive_search(search_term, new_dir); // recursively search in this
-														//  directory the for the search term	
+    		if(dirent_ptr->d_type == DT_DIR)
+    			recursive_search(s); // recursively search in this	        	
+	        						 //  directory the for the search term 															
 	    }
 	}  
 
@@ -113,18 +125,18 @@ void *recursive_search(void *arg)
 
 int main(int argc, char *argv[])
 {
-	// create an array of threads
-	pthread_t my_threads[N]; // for now there is only 1 thread in my_threads
-	
 	// if user enters invalid commmand
 	if(argc != 3)
 	{	// display program's usage
 		printf("Usage: ./file_search_threaded <search term> <starting directory>\n"); 
 		exit(1);
-	}	
+	}
 
-	char search_term[256]; // search term
-	char start_dir[256]; // starting directory
+	// create an array of threads
+	pthread_t my_threads[N]; // for now there is only 1 thread in my_threads
+
+	char search_term[1024]; // search term
+	char start_dir[1024]; // starting directory
 
 	strcpy(search_term, argv[1]); // get the search term from user
 	strcpy(start_dir, argv[2]); // get the starting directory from user
@@ -136,21 +148,43 @@ int main(int argc, char *argv[])
 		exit(1); 
 	}
 
-	struct timeval start; 
-	struct timeval end;
-	double run_time;
+	struct path_info *p1_info = malloc(sizeof(struct path_info));
+	strcpy(p1_info->term, argv[1]); // get search term from user
+	p1_info->path = argv[2]; // get starting directory from user
 
-	gettimeofday(&start, NULL); // record the start time of recursive_search()
-	recursive_search(search_term, start_dir);
-	gettimeofday(&end, NULL); // record the end time of recursive_search()
+	pthread_create(&my_threads[0], NULL, recursive_search, p1_info);
+    pthread_join(my_threads[0], NULL);
 
-	// calculate the run-time of recursive_search() in milliseconds
-	run_time = 1000.0 * ((double) (end.tv_usec - start.tv_usec) / 1000000 + 
-						 (double) (end.tv_sec - start.tv_sec));
-	printf("\n");
-	printf ("Time = %f ms\n", run_time);
-	
 	return 0;
+	/*-------------------------------------------------------------------------------------------*/
+	// char search_term[256]; // search term
+	// char start_dir[256]; // starting directory
+
+	// strcpy(search_term, argv[1]); // get the search term from user
+	// strcpy(start_dir, argv[2]); // get the starting directory from user
+
+	// // if the provided starting directory starts with a '/', or ends with a '/'
+	// if((start_dir[0] != '/') || (start_dir[strlen(start_dir) - 1] == '/'))
+	// {
+	// 	printf("The <starting directory> must start with a \'/\', and does not end with an \'/\'\n");
+	// 	exit(1); 
+	// }
+
+	// struct timeval start; 
+	// struct timeval end;
+	// double run_time;
+
+	// gettimeofday(&start, NULL); // record the start time of recursive_search()
+	// recursive_search(search_term, start_dir);
+	// gettimeofday(&end, NULL); // record the end time of recursive_search()
+
+	// // calculate the run-time of recursive_search() in milliseconds
+	// run_time = 1000.0 * ((double) (end.tv_usec - start.tv_usec) / 1000000 + 
+	// 					 (double) (end.tv_sec - start.tv_sec));
+	// printf("\n");
+	// printf ("Time = %f ms\n", run_time);
+	
+	// return 0;
 }
 
 /*
