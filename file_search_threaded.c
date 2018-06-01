@@ -28,124 +28,26 @@ Just looking at the directory names is a tiny fraction of time
 	compared to what it takes to do the opendir/readdir operations.
 */
 
-struct path_info 
+//takes a file/dir as argument, recurses,
+// prints name if empty dir or not a dir (leaves)
+void recur_file_search(char *file);
+
+//share search term globally (rather than passing recursively)
+const char *search_term;
+
+int main(int argc, char **argv)
 {
-	char term[1024]; // search term
-	char *path; // directory or file name
-};
-
-/*
-This function:
-
-*/
-
-void *recursive_search(void *arg)
-{
-	struct path_info *s = arg; // s is a pointer of path_info object 'arg'
-
-	char search_term[1024];
-	strcpy(search_term, s->term); // search term
-
-	char *directory = s->path; // directory or file name
-
-	//printf("%s\n", search_term);
-	//printf("%s\n", directory);
-	
-	// fflush(stdout);
-
-	char *found;
-
-	// 'new_dir' contains the name of new directory during the recursive search
-	char *new_dir = malloc(sizeof(char) * 1024);
-
-
-	/*
-	The 'dir_ptr' variable a pointer of type 'DIR'.
-	'DIR' is a data type representing a directory stream.
-	*/
-	DIR *dir_ptr; 
-
-	
-	/*
-	The 'dirent_ptr' represents directory entry at the current position in directory stream dir_ptr.
-
-	struct dirent {
-		ino_t  d_ino       // file serial number
-
-		char   d_name[]    // name of directory
-
-		unsigned char d_namlen // length of the file name, not including the terminating null character
-
-		unsigned char d_type // type of the file. Some possible values of d_type include:
-							 // DT_REG 		a regular file.							 
-							 // DT_DIR 		a directory.							 							 
-	}
-
-
-	*/
-	struct dirent *dirent_ptr = (struct dirent *) malloc(sizeof(struct dirent)); ;
-
-	
-	char current[] = ".";
-	char parent[] = "..";
-
-	// set the 'dir_ptr' pointer to point the directory provided by user
-	dir_ptr = opendir(directory); // open the directory
-
-	// if the directory cannot be opened
-	if(dir_ptr == NULL)
-	{
-		printf("Cannot open %s\n", directory); // print error message
-		exit(1); // exit the recursive_search() function
-	}
-
-	/*
-	The readdir() returns either:
-		file/directory at current position in directory stream, or 
-		NULL pointer if reached at the end of directory stream.
-	*/
-	while((dirent_ptr = readdir(dir_ptr)) != NULL)
-	{
-	    if(strcmp(dirent_ptr->d_name, current) != 0 && strcmp(dirent_ptr->d_name, parent) != 0)
-	    {
-	    	// 'new_dir' is the name of new directory/file
-	        sprintf(new_dir, "%s/%s", directory, dirent_ptr->d_name);	        
-
-			// find the search term in the name of the directory/file
-	    	found = strstr(dirent_ptr->d_name, search_term);	
-
-			// if the search term is found in the name of the directory
-	    	if((found) && (dirent_ptr->d_type == DT_DIR))    	
-		        printf("%s:\n", new_dir); // print out the directory name, and append a ":" to its name
-		    else if (found) // if the search term is found in the name of the file
-		    	printf("%s\n", new_dir); // print out the file name
-			
-			//update path_info with 'search_term' and 'new_dir'
-		    s->path = new_dir;
-		    strcpy(s->term, search_term); // search term
-
-			// if the current entry is a directory
-    		if(dirent_ptr->d_type == DT_DIR)
-    		{
-    			recursive_search(s); // recursively search in this directory the for the search term	        						 
-    		}	
-    																	
-	    }
-	}  
-
-	closedir(dir_ptr); // close the directory
-} 
-
-//void recursive_search(char search_term[], char *directory);
-
-int main(int argc, char *argv[])
-{
-	// if user enters invalid commmand
 	if(argc != 3)
-	{	// display program's usage
-		printf("Usage: ./file_search_threaded <search term> <starting directory>\n"); 
+	{
+		printf("Usage: my_file_search <search_term> <dir>\n");
+		printf("Performs recursive file search for files/dirs matching\
+				<search_term> starting at <dir>\n");
 		exit(1);
 	}
+
+	//don't need to bother checking if term/directory are swapped, since we can't
+	// know for sure which is which anyway
+	search_term = argv[1];
 
 	//open the top-level directory
 	DIR *dir = opendir(argv[2]);
@@ -156,198 +58,96 @@ int main(int argc, char *argv[])
 		perror("opendir failed");
 		exit(1);
 	}
+	
+	//start timer for recursive search
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
 
-	// arrays that can contain upto 100 directory/file names whose
-	//	length can be as long as 1024 characters.
-	char dir_container[100][1024] = {};
-	//char file_container[100][1024] = {};
+	recur_file_search(argv[2]);
 
-	int dir_container_counter = -1;
-	//int file_container_counter = -1;
+	gettimeofday(&end, NULL);
+	printf("Time: %ld\n", (end.tv_sec * 1000000 + end.tv_usec)
+			- (start.tv_sec * 1000000 + start.tv_usec));
 
-	struct dirent *cur_file;
-	while((cur_file = readdir(dir)) != NULL)
+	return 0;
+}
+
+
+//This function takes a path to recurse on, searching for mathes to the
+// (global) search_term.  The base case for recursion is when *file is
+// not a directory.
+//Parameters: the starting path for recursion (char *), which could be a
+// directory or a regular file (or something else, but we don't need to
+// worry about anything else for this assignment).
+//Returns: nothing
+//Effects: prints the filename if the base case is reached *and* search_term
+// is found in the filename; otherwise, prints the directory name if the directory
+// matches search_term.
+void recur_file_search(char *file)
+{
+	//check if directory is actually a file
+	DIR *d = opendir(file);
+
+	//NULL means not a directory (or another, unlikely error)
+	if(d == NULL)
 	{
-		if((strcmp(cur_file->d_name, ".") != 0) && (strcmp(cur_file->d_name, "..") != 0))
+		//opendir SHOULD error with ENOTDIR, but if it did something else,
+		// we have a problem (e.g., forgot to close open files, got
+		// EMFILE or ENFILE)
+		if(errno != ENOTDIR)
+		{	
+			perror("Something weird happened!");
+			fprintf(stderr, "While looking at: %s\n", file);
+			exit(1);
+		}
+
+		//nothing weird happened, check if the file contains the search term
+		// and if so print the file to the screen (with full path)
+		if(strstr(file, search_term) != NULL)
+			printf("%s\n", file);
+
+		//no need to close d (we can't, it is NULL!)
+		return;
+	}
+
+	//we have a directory, not a file, so check if its name
+	// matches the search term
+	if(strstr(file, search_term) != NULL)
+		printf("%s/\n", file);
+
+	//call recur_file_search for each file in d
+	//readdir "discovers" all the files in d, one by one and we
+	// recurse on those until we run out (readdir will return NULL)
+	struct dirent *cur_file;
+	while((cur_file = readdir(d)) != NULL)
+	{
+		//make sure we don't recurse on . or ..
+		if(strcmp(cur_file->d_name, "..") != 0 &&\
+				strcmp(cur_file->d_name, ".") != 0)
 		{
-			if(cur_file->d_type == DT_DIR)
-			{
-				dir_container_counter++;
-				sprintf(dir_container[dir_container_counter], "%s", cur_file->d_name);				
-			}
-			// else if(cur_file->d_type == DT_REG)
-			// {
-			// 	file_container_counter++;
-			// 	sprintf(file_container[file_container_counter], "%s", cur_file->d_name);
-			// }
-			
+			//we need to pass a full path to the recursive function, 
+			// so here we append the discovered filename (cur_file->d_name)
+			// to the current path (file -- we know file is a directory at
+			// this point)
+			char *next_file_str = malloc(sizeof(char) * \
+					strlen(cur_file->d_name) + \
+					strlen(file) + 2);
+
+			strncpy(next_file_str, file, strlen(file));
+			strncpy(next_file_str + strlen(file), \
+					"/", 1);
+			strncpy(next_file_str + strlen(file) + 1, \
+					cur_file->d_name, \
+					strlen(cur_file->d_name) + 1);
+
+			//recurse on the file
+			recur_file_search(next_file_str);
+
+			//free the dynamically-allocated string
+			free(next_file_str);
 		}
 	}
 
-	closedir(dir);
-
-	int i;
-	int j;
-
-	for(i = 0; i <= dir_container_counter; i++)
-	{
-		printf("%s\n", dir_container[i]);
-	}
-	return 0;
-
-	struct timeval start; 
-	struct timeval end;
-	double run_time;
-
-	// create an array of threads
-	pthread_t my_threads[N]; // for now there is only 1 thread in my_threads
-
-	char search_term[1024]; // search term
-	char start_dir[1024]; // starting directory
-
-	strcpy(search_term, argv[1]); // get the search term from user
-	strcpy(start_dir, argv[2]); // get the starting directory from user
-
-	// if the provided starting directory starts with a '/', or ends with a '/'
-	if((start_dir[0] != '/') || (start_dir[strlen(start_dir) - 1] == '/'))
-	{
-		printf("The <starting directory> must start with a \'/\', and does not end with an \'/\'\n");
-		exit(1); 
-	}
-
-	struct path_info *p1_info = malloc(sizeof(struct path_info));
-	strcpy(p1_info->term, argv[1]); // get search term from user
-	p1_info->path = argv[2]; // get starting directory from user
-
-	gettimeofday(&start, NULL); // record the start time of recursive_search()
-
-	pthread_create(&my_threads[0], NULL, recursive_search, p1_info);
-    pthread_join(my_threads[0], NULL);
-
-    gettimeofday(&end, NULL); // record the end time of recursive_search()
-
-    // calculate the run-time of recursive_search() in milliseconds
-	run_time = 1000.0 * ((double) (end.tv_usec - start.tv_usec) / 1000000 + 
-						 (double) (end.tv_sec - start.tv_sec));
-	printf("\n");
-	printf ("Time = %f ms\n", run_time);
-
-	return 0;
-	/*-------------------------------------------------------------------------------------------*/
-	// char search_term[256]; // search term
-	// char start_dir[256]; // starting directory
-
-	// strcpy(search_term, argv[1]); // get the search term from user
-	// strcpy(start_dir, argv[2]); // get the starting directory from user
-
-	// // if the provided starting directory starts with a '/', or ends with a '/'
-	// if((start_dir[0] != '/') || (start_dir[strlen(start_dir) - 1] == '/'))
-	// {
-	// 	printf("The <starting directory> must start with a \'/\', and does not end with an \'/\'\n");
-	// 	exit(1); 
-	// }
-
-	// struct timeval start; 
-	// struct timeval end;
-	// double run_time;
-
-	// gettimeofday(&start, NULL); // record the start time of recursive_search()
-	// recursive_search(search_term, start_dir);
-	// gettimeofday(&end, NULL); // record the end time of recursive_search()
-
-	// // calculate the run-time of recursive_search() in milliseconds
-	// run_time = 1000.0 * ((double) (end.tv_usec - start.tv_usec) / 1000000 + 
-	// 					 (double) (end.tv_sec - start.tv_sec));
-	// printf("\n");
-	// printf ("Time = %f ms\n", run_time);
-	
-	// return 0;
+	//close the directory, or we will have too many files opened (bad times)
+	closedir(d);
 }
-
-/*
-This function:
-- Takes in the search term and starting directory from user.
-- Recursively searches all file and directory names in starting directory for occurrences of search term.
-- Prints the all file and directory names names contain the search term.
-
-Parameter: char search_term[], char *directory
-Return: None
-*/
-// void recursive_search(char search_term[], char *directory)
-// {
-// 	char* found;
-
-// 	// 'new_dir' contains the name of new directory during the recursive search
-// 	char *new_dir = malloc(sizeof(char) * 1024);
-
-
-// 	/*
-// 	The 'dir_ptr' variable a pointer of type 'DIR'.
-// 	'DIR' is a data type representing a directory stream.
-// 	*/
-// 	DIR *dir_ptr; 
-
-	
-// 	/*
-// 	The 'dirent_ptr' represents directory entry at the current position in directory stream dir_ptr.
-
-// 	struct dirent {
-// 		ino_t  d_ino       // file serial number
-
-// 		char   d_name[]    // name of directory
-
-// 		unsigned char d_namlen // length of the file name, not including the terminating null character
-
-// 		unsigned char d_type // type of the file. Some possible values of d_type include:
-// 							 // DT_REG 		a regular file.							 
-// 							 // DT_DIR 		a directory.							 							 
-// 	}
-
-
-// 	*/
-// 	struct dirent* dirent_ptr = (struct dirent *) malloc(sizeof(struct dirent)); ;
-
-	
-// 	char current[] = ".";
-// 	char parent[] = "..";
-
-// 	// set the 'dir_ptr' pointer to point the directory provided by user
-// 	dir_ptr = opendir(directory); // open the directory
-
-// 	// if the directory cannot be opened
-// 	if(dir_ptr == NULL)
-// 	{
-// 		printf("Cannot open %s\n", directory); // print error message
-// 		exit(1); // exit the recursive_search() function
-// 	}
-
-// 	/*
-// 	The readdir() returns either:
-// 		file/directory at current position in directory stream, or 
-// 		NULL pointer if reached at the end of directory stream.
-// 	*/
-// 	while((dirent_ptr = readdir(dir_ptr)) != NULL)
-// 	{
-// 	    if(strcmp(dirent_ptr->d_name, current) != 0 && strcmp(dirent_ptr->d_name, parent) != 0)
-// 	    {
-// 	    	// 'new_dir' is the name of new directory/file
-// 	        sprintf(new_dir, "%s/%s", directory, dirent_ptr->d_name);	        
-
-// 			// find the search term in the name of the directory/file
-// 	    	found = strstr(dirent_ptr->d_name, search_term);
-
-// 			// if the search term is found in the name of the directory
-// 	    	if((found) && (dirent_ptr->d_type == DT_DIR))    	
-// 		        printf("%s:\n", new_dir); // print out the directory name, and append a ":" to its name
-// 		    else if (found) // if the search term is found in the name of the file
-// 		    	printf("%s\n", new_dir); // print out the file name
-			
-// 			// if the current entry is a directory
-//     		if(dirent_ptr->d_type == DT_DIR)	        	
-// 	        	recursive_search(search_term, new_dir); // recursively search in this
-// 														//  directory the for the search term	
-// 	    }
-// 	}  
-
-// 	closedir(dir_ptr); // close the directory		
-// }
