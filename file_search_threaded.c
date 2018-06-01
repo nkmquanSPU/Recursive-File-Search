@@ -13,7 +13,20 @@
 #include <assert.h>
 #include <pthread.h>
 
-#define N 1 // number of thread. Start with 1 first
+#define N 4 // number of thread. Start with 1 first
+
+/*
+Ideas: 
+1) Create one void* function for each thread?
+
+Strategy (after discussing with Dr. Dingler):
+1) Read the files into memory -- which is I/O intensive. 
+2) Have the CPU spend a significant amount of time doing something 
+	with that in-memory data, after the file read is done.
+
+Just looking at the directory names is a tiny fraction of time 
+	compared to what it takes to do the opendir/readdir operations.
+*/
 
 struct path_info 
 {
@@ -113,8 +126,10 @@ void *recursive_search(void *arg)
 
 			// if the current entry is a directory
     		if(dirent_ptr->d_type == DT_DIR)
-    			recursive_search(s); // recursively search in this	        	
-	        						 //  directory the for the search term 															
+    		{
+    			recursive_search(s); // recursively search in this directory the for the search term	        						 
+    		}	
+    																	
 	    }
 	}  
 
@@ -131,6 +146,54 @@ int main(int argc, char *argv[])
 		printf("Usage: ./file_search_threaded <search term> <starting directory>\n"); 
 		exit(1);
 	}
+
+	//open the top-level directory
+	DIR *dir = opendir(argv[2]);
+
+	//make sure top-level dir is openable (i.e., exists and is a directory)
+	if(dir == NULL)
+	{
+		perror("opendir failed");
+		exit(1);
+	}
+
+	// arrays that can contain upto 100 directory/file names whose
+	//	length can be as long as 1024 characters.
+	char dir_container[100][1024] = {};
+	//char file_container[100][1024] = {};
+
+	int dir_container_counter = -1;
+	//int file_container_counter = -1;
+
+	struct dirent *cur_file;
+	while((cur_file = readdir(dir)) != NULL)
+	{
+		if((strcmp(cur_file->d_name, ".") != 0) && (strcmp(cur_file->d_name, "..") != 0))
+		{
+			if(cur_file->d_type == DT_DIR)
+			{
+				dir_container_counter++;
+				sprintf(dir_container[dir_container_counter], "%s", cur_file->d_name);				
+			}
+			// else if(cur_file->d_type == DT_REG)
+			// {
+			// 	file_container_counter++;
+			// 	sprintf(file_container[file_container_counter], "%s", cur_file->d_name);
+			// }
+			
+		}
+	}
+
+	closedir(dir);
+
+	int i;
+	int j;
+
+	for(i = 0; i <= dir_container_counter; i++)
+	{
+		printf("%s\n", dir_container[i]);
+	}
+	return 0;
 
 	struct timeval start; 
 	struct timeval end;
@@ -157,8 +220,10 @@ int main(int argc, char *argv[])
 	p1_info->path = argv[2]; // get starting directory from user
 
 	gettimeofday(&start, NULL); // record the start time of recursive_search()
+
 	pthread_create(&my_threads[0], NULL, recursive_search, p1_info);
     pthread_join(my_threads[0], NULL);
+
     gettimeofday(&end, NULL); // record the end time of recursive_search()
 
     // calculate the run-time of recursive_search() in milliseconds
@@ -166,7 +231,7 @@ int main(int argc, char *argv[])
 						 (double) (end.tv_sec - start.tv_sec));
 	printf("\n");
 	printf ("Time = %f ms\n", run_time);
-	
+
 	return 0;
 	/*-------------------------------------------------------------------------------------------*/
 	// char search_term[256]; // search term
