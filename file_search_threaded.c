@@ -49,15 +49,24 @@ int main(int argc, char **argv)
 	char dir_container[100][1024]; // contains all subdirectories in the starting directory
 	int dir_container_counter = -1; // count number of directories in dir_container
 
+
+	char file_container[100][1024]; // contains all files in the starting directory
+	int file_container_counter = -1; // count number of files in dir_container
+
 	struct dirent *cur_file;
 	while((cur_file = readdir(dir)) != NULL)
 	{
 		if((strcmp(cur_file->d_name, ".") != 0) && (strcmp(cur_file->d_name, "..") != 0))
 		{
-			if(cur_file->d_type == DT_DIR)
+			if(cur_file->d_type == DT_DIR) // put all subdirectories into dir_container 
 			{
 				dir_container_counter++;
 				sprintf(dir_container[dir_container_counter], "%s/%s", argv[2], cur_file->d_name);				
+			}
+			else if(cur_file->d_type == DT_REG) // put all file into file_container 
+			{
+				file_container_counter++;
+				sprintf(file_container[file_container_counter], "%s/%s", argv[2], cur_file->d_name);				
 			}
 		}
 	}
@@ -70,6 +79,49 @@ int main(int argc, char **argv)
 	//start timer for recursive search
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
+
+
+	/*
+	Each thread searches one file of starting directory for the search term.
+	Once a thread finishes searching one file, it chooses another unassigned
+		file to do the searching.
+	*/
+	if(file_container_counter != -1) // if there is at least 1 subdirectory
+	{ 								// 	in the given starting directory
+		int i;
+
+		for(i = -1; i < file_container_counter; )
+		{
+			if(i < file_container_counter) // Thread 0
+			{
+				i++;								
+				pthread_create(&my_threads[0], NULL, recur_file_search, file_container[i]);
+	    	}
+
+			if(i < file_container_counter) // Thread 1
+			{
+				i++;				
+				pthread_create(&my_threads[1], NULL, recur_file_search, file_container[i]); 
+			}
+
+			if(i < file_container_counter) // Thread 2
+			{
+				i++;				
+				pthread_create(&my_threads[2], NULL, recur_file_search, file_container[i]);
+			}
+			
+			if(i < file_container_counter) // Thread 3
+			{
+				i++;				
+				pthread_create(&my_threads[3], NULL, recur_file_search, file_container[i]);
+			}
+		}
+		pthread_join(my_threads[0], NULL);
+		pthread_join(my_threads[1], NULL);
+		pthread_join(my_threads[2], NULL);
+		pthread_join(my_threads[3], NULL);
+	}
+
 
 	/*
 	Each thread searches in one subdirectory of starting directory for the search term.
