@@ -58,12 +58,90 @@ int main(int argc, char **argv)
 		perror("opendir failed");
 		exit(1);
 	}
+
+
+	char dir_container[100][1024]; // contains all subdirectories in the starting directory
+	int dir_container_counter = -1;
+
+	struct dirent *cur_file;
+	while((cur_file = readdir(dir)) != NULL)
+	{
+		if((strcmp(cur_file->d_name, ".") != 0) && (strcmp(cur_file->d_name, "..") != 0))
+		{
+			if(cur_file->d_type == DT_DIR)
+			{
+				dir_container_counter++;
+				//sprintf(dir_container[dir_container_counter], "%s", cur_file->d_name);
+				sprintf(dir_container[dir_container_counter], "%s/%s", argv[2], cur_file->d_name);				
+			}
+		}
+	}
+
+	closedir(dir);
 	
+	// recur_file_search(dir_container[0]);
+	// recur_file_search(dir_container[0]);
+	// recur_file_search(dir_container[0]);
+	// return 0;
+	
+	// create an array of threads
+	pthread_t my_threads[N];
+
+	if(dir_container_counter != -1) // if there is at least 1 subdirectory
+	{ 								// 	in the given starting directory
+		int i;
+		int rc;
+
+		for(i = -1; ; )
+		{
+			if(i < dir_container_counter)
+			{
+				i++;				
+				
+				rc = pthread_create(&my_threads[0], NULL, recur_file_search, dir_container[i]);
+				assert(rc == 0);
+	    		rc = pthread_join(my_threads[0], NULL);
+	    		assert(rc == 0);
+	    	}
+
+			if(i < dir_container_counter)
+			{
+				i++;
+				
+				rc = pthread_create(&my_threads[1], NULL, recur_file_search, dir_container[i]); 
+				assert(rc == 0);
+	    		rc = pthread_join(my_threads[1], NULL); 
+	    		assert(rc == 0);
+			}
+
+			if(i < dir_container_counter)
+			{
+				i++;
+				
+				rc = pthread_create(&my_threads[2], NULL, recur_file_search, dir_container[i]);
+				assert(rc == 0);
+	    		rc = pthread_join(my_threads[2], NULL);
+	    		assert(rc == 0);
+			}
+			
+			if(i < dir_container_counter)
+			{
+				i++;
+				
+				rc = pthread_create(&my_threads[3], NULL, recur_file_search, dir_container[i]);
+				assert(rc == 0);
+	    		rc = pthread_join(my_threads[3], NULL);
+	    		assert(rc == 0);
+			}
+		}
+	}
+
+
 	//start timer for recursive search
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 
-	recur_file_search(argv[2]);
+	//recur_file_search(argv[2]);
 
 	gettimeofday(&end, NULL);
 	printf("Time: %ld\n", (end.tv_sec * 1000000 + end.tv_usec)
