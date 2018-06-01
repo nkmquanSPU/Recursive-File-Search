@@ -30,7 +30,8 @@ Just looking at the directory names is a tiny fraction of time
 
 //takes a file/dir as argument, recurses,
 // prints name if empty dir or not a dir (leaves)
-void recur_file_search(char *file);
+// void recur_file_search(char *file);
+void *recur_file_search(void *arg);
 
 //share search term globally (rather than passing recursively)
 const char *search_term;
@@ -80,12 +81,16 @@ int main(int argc, char **argv)
 	closedir(dir);
 	
 	// recur_file_search(dir_container[0]);
-	// recur_file_search(dir_container[0]);
-	// recur_file_search(dir_container[0]);
+	// recur_file_search(dir_container[1]);
+	// recur_file_search(dir_container[2]);
 	// return 0;
 	
 	// create an array of threads
 	pthread_t my_threads[N];
+
+	//start timer for recursive search
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
 
 	if(dir_container_counter != -1) // if there is at least 1 subdirectory
 	{ 								// 	in the given starting directory
@@ -100,8 +105,8 @@ int main(int argc, char **argv)
 				
 				rc = pthread_create(&my_threads[0], NULL, recur_file_search, dir_container[i]);
 				assert(rc == 0);
-	    		rc = pthread_join(my_threads[0], NULL);
-	    		assert(rc == 0);
+	    		// rc = pthread_join(my_threads[0], NULL);
+	    		// assert(rc == 0);
 	    	}
 
 			if(i < dir_container_counter)
@@ -110,8 +115,8 @@ int main(int argc, char **argv)
 				
 				rc = pthread_create(&my_threads[1], NULL, recur_file_search, dir_container[i]); 
 				assert(rc == 0);
-	    		rc = pthread_join(my_threads[1], NULL); 
-	    		assert(rc == 0);
+	    		// rc = pthread_join(my_threads[1], NULL); 
+	    		// assert(rc == 0);
 			}
 
 			if(i < dir_container_counter)
@@ -120,8 +125,8 @@ int main(int argc, char **argv)
 				
 				rc = pthread_create(&my_threads[2], NULL, recur_file_search, dir_container[i]);
 				assert(rc == 0);
-	    		rc = pthread_join(my_threads[2], NULL);
-	    		assert(rc == 0);
+	    		// rc = pthread_join(my_threads[2], NULL);
+	    		// assert(rc == 0);
 			}
 			
 			if(i < dir_container_counter)
@@ -130,22 +135,25 @@ int main(int argc, char **argv)
 				
 				rc = pthread_create(&my_threads[3], NULL, recur_file_search, dir_container[i]);
 				assert(rc == 0);
-	    		rc = pthread_join(my_threads[3], NULL);
-	    		assert(rc == 0);
+	    		// rc = pthread_join(my_threads[3], NULL);
+	    		// assert(rc == 0);
 			}
 		}
 	}
 
-
-	//start timer for recursive search
-	struct timeval start, end;
-	gettimeofday(&start, NULL);
-
-	//recur_file_search(argv[2]);
-
 	gettimeofday(&end, NULL);
 	printf("Time: %ld\n", (end.tv_sec * 1000000 + end.tv_usec)
 			- (start.tv_sec * 1000000 + start.tv_usec));
+
+	// //start timer for recursive search
+	// struct timeval start, end;
+	// gettimeofday(&start, NULL);
+
+	//recur_file_search(argv[2]);
+
+	// gettimeofday(&end, NULL);
+	// printf("Time: %ld\n", (end.tv_sec * 1000000 + end.tv_usec)
+	// 		- (start.tv_sec * 1000000 + start.tv_usec));
 
 	return 0;
 }
@@ -161,8 +169,11 @@ int main(int argc, char **argv)
 //Effects: prints the filename if the base case is reached *and* search_term
 // is found in the filename; otherwise, prints the directory name if the directory
 // matches search_term.
-void recur_file_search(char *file)
+void *recur_file_search(void *arg)
 {
+	char *file;
+	file = (char *) arg; // cast the arg
+
 	//check if directory is actually a file
 	DIR *d = opendir(file);
 
@@ -185,7 +196,7 @@ void recur_file_search(char *file)
 			printf("%s\n", file);
 
 		//no need to close d (we can't, it is NULL!)
-		return;
+		return NULL;
 	}
 
 	//we have a directory, not a file, so check if its name
