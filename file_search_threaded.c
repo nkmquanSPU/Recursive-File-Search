@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 	Once a thread finishes searching one file, it chooses another unassigned
 		file to do the searching.
 	*/
-	if(file_container_counter != -1) // if there is at least 1 subdirectory
+	if(file_container_counter != -1) // if there is at least 1 file
 	{ 								// 	in the given starting directory
 		int i;
 
